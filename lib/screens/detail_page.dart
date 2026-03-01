@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:roomledger/models/room_item.dart';
 
-class RoomDetailPage extends StatelessWidget {
+class RoomDetailPage extends StatefulWidget {
   final RoomItem room;
 
   const RoomDetailPage({super.key, required this.room});
 
+  @override
+  State<RoomDetailPage> createState() => _RoomDetailPageState();
+}
+
+class _RoomDetailPageState extends State<RoomDetailPage> {
+  String? roomName = "";
+  int roomPrice = 0;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -26,7 +33,7 @@ class RoomDetailPage extends StatelessWidget {
               background: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.network(room.imageUrl, fit: BoxFit.cover),
+                  Image.network(widget.room.imageUrl, fit: BoxFit.cover),
                   const DecoratedBox(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -53,7 +60,7 @@ class RoomDetailPage extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          "${room.name}, ${room.location}",
+                          "${widget.room.name}, ${widget.room.location}",
                           style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w800,
@@ -61,7 +68,6 @@ class RoomDetailPage extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      _RatingChip(rating: room.rating),
                     ],
                   ),
                   const SizedBox(height: 10),
@@ -70,7 +76,7 @@ class RoomDetailPage extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        "\$${room.pricePerNight}",
+                        "\$${widget.room.pricePerNight}",
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w900,
@@ -90,7 +96,7 @@ class RoomDetailPage extends StatelessWidget {
 
                   const SizedBox(height: 14),
                   Text(
-                    room.description,
+                    widget.room.description,
                     style: const TextStyle(
                       fontSize: 14,
                       height: 1.4,
@@ -108,7 +114,7 @@ class RoomDetailPage extends StatelessWidget {
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: room.amenities
+                    children: widget.room.amenities
                         .map((a) => _AmenityChip(label: a))
                         .toList(),
                   ),
@@ -120,16 +126,19 @@ class RoomDetailPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 10),
 
-                  ...room.availableRooms.map(
+                  ...widget.room.availableRooms.map(
                     (r) => _AvailableRoomTile(
                       room: r,
                       onTap: r.isAvailable
                           ? () {
+                            setState(() {
+                              roomName = r.title;
+                              roomPrice = r.pricePerNight;
+                            });
+                              
                               // TODO: go to booking page / checkout
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text("Selected: ${r.title}"),
-                                ),
+                                SnackBar(content: Text("Selected: ${r.title}")),
                               );
                             }
                           : null,
@@ -161,7 +170,7 @@ class RoomDetailPage extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      "Start from",
+                      "Selected Room",
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -170,7 +179,7 @@ class RoomDetailPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      "\$${room.pricePerNight}/night",
+                      "${roomName} - \$${roomPrice}/night",
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w900,
@@ -211,33 +220,6 @@ class RoomDetailPage extends StatelessWidget {
   }
 }
 
-class _RatingChip extends StatelessWidget {
-  final double rating;
-  const _RatingChip({required this.rating});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0x11000000)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.star_rounded, size: 18, color: Color(0xFFFFB400)),
-          const SizedBox(width: 4),
-          Text(
-            rating.toStringAsFixed(2),
-            style: const TextStyle(fontWeight: FontWeight.w800),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _AmenityChip extends StatelessWidget {
   final String label;
@@ -341,7 +323,9 @@ class _AvailableRoomTile extends StatelessWidget {
                       alignment: Alignment.centerRight,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 6),
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: disabled
                               ? const Color(0xFFF3F3F3)
