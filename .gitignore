@@ -1,3 +1,97 @@
+# Flutter/Dart/Pub related
+.dart_tool/
+.packages
+.flutter-plugins
+.flutter-plugins-dependencies
+.flutter-plugins
+.flutter-plugins-dependencies
+.idea/
+.vscode/
+build/
+pubspec.lock
+
+# iOS
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Flutter/Generated.xcconfig
+ios/Flutter/ephemeral/
+ios/Pods/
+ios/Runner.xcworkspace/
+ios/Runner.xcodeproj/project.xcworkspace/
+ios/Runner.xcodeproj/xcuserdata/
+ios/Runner.xcworkspace/xcuserdata/
+ios/Runner/GeneratedPluginRegistrant.*
+ios/Flutter/App.framework
+ios/Flutter/engine/
+ios/Flutter/ephemeral/
+ios/Flutter/Flutter.podspec
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Flutter/Generated.xcconfig
+ios/Flutter/ephemeral/
+ios/Pods/
+ios/Runner.xcworkspace/
+ios/Runner.xcodeproj/project.xcworkspace/
+ios/Runner.xcodeproj/xcuserdata/
+ios/Runner.xcworkspace/xcuserdata/
+ios/Runner/GeneratedPluginRegistrant.*
+ios/Flutter/App.framework
+ios/Flutter/engine/
+ios/Flutter/ephemeral/
+
+# Android
+android/.gradle/
+android/captures/
+android/.idea/
+android/local.properties
+android/.DS_Store
+android/build/
+android/app/build/
+
+# macOS
+macos/Flutter/ephemeral/
+macos/Pods/
+macos/build/
+macos/Runner.xcworkspace/
+macos/Runner.xcodeproj/project.xcworkspace/
+macos/Runner.xcodeproj/xcuserdata/
+macos/Runner.xcworkspace/xcuserdata/
+
+# Linux
+linux/flutter/ephemeral/
+linux/build/
+
+# Windows
+windows/build/
+windows/runner/Debug/
+windows/runner/Release/
+windows/runner/x64/
+windows/runner/Win32/
+
+# Web
+web/.dart_tool/
+web/build/
+
+# Other
+*.log
+*.tmp
+*.swp
+*.swo
+*.DS_Store
+*.iml
+*.lock
+
+# Node.js backend
+backend/node_modules/
+backend/.env
+backend/package-lock.json
+
+# Coverage
+coverage/
+
+# Test outputs
+test_cache/
+unit_test_assets/
 # Miscellaneous
 *.class
 *.log
