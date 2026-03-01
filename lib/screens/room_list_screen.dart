@@ -19,10 +19,6 @@ class _RoomListPageState extends State<RoomListPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _backgroundColor,
-      bottomNavigationBar: _BottomNav(
-        currentIndex: _navIndex,
-        onChanged: (i) => setState(() => _navIndex = i),
-      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -196,42 +192,3 @@ class _SearchBar extends StatelessWidget {
   }
 }
 
-class _BottomNav extends StatelessWidget {
-  final int currentIndex;
-  final ValueChanged<int> onChanged;
-
-  const _BottomNav({required this.currentIndex, required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Color(0x11000000))),
-      ),
-      child: BottomNavigationBar(
-        currentIndex: currentIndex,
-        onTap: onChanged,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.black,
-        unselectedItemColor: Colors.black54,
-        showSelectedLabels: false,
-        showUnselectedLabels: false,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_rounded),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_cart_outlined),
-            label: 'Cart',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline_rounded),
-            label: 'Profile',
-          ),
-        ],
-      ),
-    );
-  }
-}
