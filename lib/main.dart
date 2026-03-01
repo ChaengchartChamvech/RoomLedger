@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
 // import 'package:flutter_application_68test_vscode/intro.dart';
-import 'screens/room_list_screen.dart';
-import 'screens/home.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'screens/auth_gate.dart';
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
 
-void main() {
+  await Supabase.initialize(
+    url: 'https://mrmqkhybjlkphrzvuxmp.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ybXFraHliamxrcGhyenZ1eG1wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzNjYzNzAsImV4cCI6MjA4Nzk0MjM3MH0.LG-lvRQM6HN2rmNacW12D8J1iL89hC9SxmC5GQ6oAQE',
+  );
+
   runApp(const MyApp());
 }
+
+final supabase = Supabase.instance.client;
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -13,8 +21,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: Home(),
+      home: const AuthGate(),
     );
   }
 }
