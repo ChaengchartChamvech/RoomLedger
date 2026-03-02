@@ -3,8 +3,8 @@ import 'package:roomledger/models/room_item.dart';
 
 class RoomDetailPage extends StatefulWidget {
   final RoomItem room;
-
-  const RoomDetailPage({super.key, required this.room});
+  final bool isOwner;
+  const RoomDetailPage({super.key, required this.room, required this.isOwner});
 
   @override
   State<RoomDetailPage> createState() => _RoomDetailPageState();

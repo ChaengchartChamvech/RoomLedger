@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:roomledger/data/mock_room_items.dart';
 import 'package:roomledger/models/room_item.dart';
 import 'package:roomledger/screens/detail_page.dart';
-
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'add_room_page.dart';
 class RoomListPage extends StatefulWidget {
   const RoomListPage({super.key});
 
@@ -12,8 +13,31 @@ class RoomListPage extends StatefulWidget {
 
 class _RoomListPageState extends State<RoomListPage> {
   static const _backgroundColor = Color.fromARGB(255, 2, 103, 150);
+  final supabase = Supabase.instance.client;
+  bool isOwner = false;
+  bool isLoading = true;
 
-  int _navIndex = 0;
+  @override
+  void initState() {
+    super.initState();
+    checkUserRole();
+  }
+
+  Future<void> checkUserRole() async {
+    final user = supabase.auth.currentUser;
+    if (user == null) return;
+
+    final data = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+    setState(() {
+      isOwner = data['role'] == 'owner';
+      isLoading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +71,7 @@ class _RoomListPageState extends State<RoomListPage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => RoomDetailPage(room: room),
+                          builder: (_) => RoomDetailPage(room: room, isOwner: isOwner),
                         ),
                       );
                     },
@@ -58,6 +82,20 @@ class _RoomListPageState extends State<RoomListPage> {
           ],
         ),
       ),
+      floatingActionButton: isOwner
+          ? FloatingActionButton(
+              onPressed: () {
+                // Navigate to Add Room page
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const AddRoomPage(),
+                  ),
+                );
+              },
+              child: const Icon(Icons.add),
+            )
+          : null,
     );
   }
 }
@@ -191,4 +229,3 @@ class _SearchBar extends StatelessWidget {
     );
   }
 }
-
