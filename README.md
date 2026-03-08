@@ -1,71 +1,72 @@
-# RoomLedger
-<<<<<<< HEAD
-Room Rental Mobile App Develop using Flutter
-=======
+# 🏨 RoomLedger
 
-Room rental starter app using Flutter (frontend) + Node.js/Express + MySQL (backend).
+RoomLedger is a **Flutter-based room rental application** that allows users to browse available rooms, view room details, and make bookings.  
+The application also supports **room owners** who can add and manage their rooms.
 
-## Architecture
+The backend is powered by **Supabase (PostgreSQL + Authentication + Storage)**.
 
-- Flutter app calls REST API (`/api/rooms`)
-- Node API talks to MySQL
-- MySQL stores room listings
+---
 
-## 1) Prepare MySQL
+# 📱 Features
 
-Run these scripts in your MySQL client:
+## 👤 Authentication
+- User registration and login
+- Supabase Authentication integration
+- Secure session management
 
-- `backend/sql/schema.sql`
-- `backend/sql/seed.sql`
+## 🏠 Room Browsing
+- View list of available hotels / rooms
+- Room cards showing:
+  - Image
+  - Location
+  - Rating
+  - Starting price
 
-## 2) Run Backend API
+## 📄 Room Details
+- Room description
+- Amenities display
+- Available room types
+- Select room type before booking
 
-```bash
-cd backend
-cp .env.example .env
-# edit .env with your database password and settings
-npm install
-npm run dev
-```
+## 📅 Booking System
+- Users can book a room
+- Booking stored in Supabase database
+- Booking history displayed for users
 
-API health check:
+## 🧑‍💼 Owner Features
+Room owners can:
+- Add rooms
+- Upload room images
+- Manage available room types
+- Edit or delete rooms
 
-- `GET http://localhost:3000/health`
+## 📜 Rental History
+Users can view their previous bookings:
+- Hotel name
+- Room type
+- Location
 
-## 3) Run Flutter App
+## 👤 Profile Page
+Users can:
+- View their profile
+- Edit name and phone number
+- Logout
 
-From project root:
+---
 
-```bash
-flutter pub get
-flutter run
-```
+# 🛠 Tech Stack
 
-Notes:
+### Frontend
+- Flutter
+- Dart
 
-- App runs in mock mode by default (`USE_MOCK=true`).
-- Android emulator uses `10.0.2.2` to reach host machine.
-- iOS simulator can use `http://localhost:3000`.
-- Physical device needs your computer LAN IP.
+### Backend
+- Supabase
+  - PostgreSQL
+  - Authentication
+  - Storage
 
-Run with backend instead of mock:
+### Database
+- PostgreSQL (Supabase)
 
-```bash
-flutter run --dart-define=USE_MOCK=false --dart-define=API_BASE_URL=http://10.0.2.2:3000
-```
-
-## Implemented endpoints
-
-- `GET /api/rooms` list rooms
-- `POST /api/rooms` create a room
-
-POST body:
-
-```json
-{
-  "title": "Studio near BTS",
-  "location": "Bangkok - Ari",
-  "monthly_price": 11000
-}
-```
->>>>>>> 847b0d9 (base files)
+---
