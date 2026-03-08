@@ -58,21 +58,35 @@ class _RoomListPageState extends State<RoomListPage> {
             ),
             const SizedBox(height: 12),
             Expanded(
-              child: ListView.separated(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                itemCount: mockRoomItems.length,
-                separatorBuilder: (context, index) =>
-                    const SizedBox(height: 14),
-                itemBuilder: (context, index) {
-                  final room = mockRoomItems[index];
-                  return RoomCard(
-                    room: room,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => RoomDetailPage(room: room, isOwner: isOwner),
-                        ),
+              child: FutureBuilder<List<RoomItem>>(
+                future: loadMockRooms(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  } else if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.white)));
+                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Center(child: Text('No rooms found.', style: const TextStyle(color: Colors.white)));
+                  }
+
+                  final items = snapshot.data!;
+                  return ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    itemCount: items.length,
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 14),
+                    itemBuilder: (context, index) {
+                      final room = items[index];
+                      return RoomCard(
+                        room: room,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => RoomDetailPage(room: room, isOwner: isOwner),
+                            ),
+                          );
+                        },
                       );
                     },
                   );
