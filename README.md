@@ -1,100 +1,72 @@
-RoomLedger
+# 🏨 RoomLedger
 
-RoomLedger is a Flutter-based room rental application that allows users to browse available rooms, view details, and make bookings.
-The application also supports room owners who can add and manage their rooms.
+RoomLedger is a **Flutter-based room rental application** that allows users to browse available rooms, view room details, and make bookings.  
+The application also supports **room owners** who can add and manage their rooms.
 
-The backend is powered by Supabase (PostgreSQL + Auth + Storage).
+The backend is powered by **Supabase (PostgreSQL + Authentication + Storage)**.
 
-📱 Features
-👤 Authentication
+---
 
-User registration and login
+# 📱 Features
 
-Supabase Auth integration
+## 👤 Authentication
+- User registration and login
+- Supabase Authentication integration
+- Secure session management
 
-Secure session management
+## 🏠 Room Browsing
+- View list of available hotels / rooms
+- Room cards showing:
+  - Image
+  - Location
+  - Rating
+  - Starting price
 
-🏠 Room Browsing
+## 📄 Room Details
+- Room description
+- Amenities display
+- Available room types
+- Select room type before booking
 
-View list of available hotels / rooms
+## 📅 Booking System
+- Users can book a room
+- Booking stored in Supabase database
+- Booking history displayed for users
 
-Room cards with:
-
-image
-
-location
-
-rating
-
-starting price
-
-📄 Room Details
-
-Room description
-
-Amenities display
-
-Available room types
-
-Select room type before booking
-
-📅 Booking System
-
-Users can book a room
-
-Booking stored in Supabase database
-
-Booking history displayed for users
-
-🧑‍💼 Owner Features
-
+## 🧑‍💼 Owner Features
 Room owners can:
+- Add rooms
+- Upload room images
+- Manage available room types
+- Edit or delete rooms
 
-Add rooms
-
-Upload room images
-
-Manage available room types
-
-Edit or delete rooms
-
-📜 Rental History
-
+## 📜 Rental History
 Users can view their previous bookings:
+- Hotel name
+- Room type
+- Location
 
-Hotel name
-
-Room type
-
-Location
-
-👤 Profile Page
-
+## 👤 Profile Page
 Users can:
+- View their profile
+- Edit name and phone number
+- Logout
 
-View their profile
+---
 
-Edit name and phone number
+# 🛠 Tech Stack
 
-Logout
+### Frontend
+- Flutter
+- Dart
 
-🛠 Tech Stack
-Frontend
+### Backend
+- Supabase
+  - PostgreSQL
+  - Authentication
+  - Storage
 
-Flutter
+### Database
+- PostgreSQL (Supabase)
 
-Dart
-
-Backend
-
-Supabase
-
-PostgreSQL
-
-Authentication
-
-Storage
-
-Database
-
-PostgreSQL via Supabase
+---
