@@ -20,8 +20,9 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: const AuthGate(),
+    return const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: AuthGate(),
     );
   }
 }
