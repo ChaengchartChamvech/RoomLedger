@@ -19,12 +19,18 @@ class _RoomListPageState extends State<RoomListPage> {
   bool isLoadingRole = true;
 
   late Future<List<RoomItem>> _roomsFuture;
+  List<RoomItem> _allRooms = [];
+  List<RoomItem> _filteredRooms = [];
 
   @override
   void initState() {
     super.initState();
     checkUserRole();
-    _roomsFuture = fetchRooms();
+    _roomsFuture = fetchRooms().then((rooms) {
+      _allRooms = rooms;
+      _filteredRooms = rooms;
+      return rooms;
+    });
   }
 
   Future<void> checkUserRole() async {
@@ -110,7 +116,11 @@ class _RoomListPageState extends State<RoomListPage> {
 
   Future<void> refreshRooms() async {
     setState(() {
-      _roomsFuture = fetchRooms();
+      _roomsFuture = fetchRooms().then((rooms) {
+        _allRooms = rooms;
+        _filteredRooms = rooms;
+        return rooms;
+      });
     });
   }
 
@@ -127,7 +137,17 @@ class _RoomListPageState extends State<RoomListPage> {
               child: _SearchBar(
                 hintText: 'Search',
                 onChanged: (value) {
-                  // later: implement local filter or Supabase search
+                  setState(() {
+                    if (value.isEmpty) {
+                      _filteredRooms = _allRooms;
+                    } else {
+                      _filteredRooms = _allRooms
+                          .where((room) => room.name
+                              .toLowerCase()
+                              .contains(value.toLowerCase()))
+                          .toList();
+                    }
+                  });
                 },
               ),
             ),
@@ -152,7 +172,7 @@ class _RoomListPageState extends State<RoomListPage> {
                     );
                   }
 
-                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  if (_filteredRooms.isEmpty) {
                     return const Center(
                       child: Text(
                         'No rooms found.',
@@ -161,17 +181,15 @@ class _RoomListPageState extends State<RoomListPage> {
                     );
                   }
 
-                  final items = snapshot.data!;
-
                   return RefreshIndicator(
                     onRefresh: refreshRooms,
                     child: ListView.separated(
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                      itemCount: items.length,
+                      itemCount: _filteredRooms.length,
                       separatorBuilder: (context, index) =>
                           const SizedBox(height: 14),
                       itemBuilder: (context, index) {
-                        final room = items[index];
+                        final room = _filteredRooms[index];
                         return RoomCard(
                           room: room,
                           onTap: () {
