@@ -57,7 +57,9 @@ class _RoomListPageState extends State<RoomListPage> {
   }
 
   Future<List<RoomItem>> fetchRooms() async {
-    final data = await supabase.from('rooms').select('''
+    final data = await supabase
+        .from('rooms')
+        .select('''
       id,
       name,
       location,
@@ -68,35 +70,41 @@ class _RoomListPageState extends State<RoomListPage> {
         amenity
       ),
       available_rooms (
+      id,
         title,
         subtitle,
         price_per_night,
         is_available
       )
-    ''').order('id', ascending: false);
+    ''')
+        .order('id', ascending: false);
 
     return (data as List)
-        .map((roomMap) => RoomItem(
-              name: roomMap['name'] ?? '',
-              location: roomMap['location'] ?? '',
-              pricePerNight: roomMap['price_per_night'] ?? 0,
-              imageUrl: roomMap['image_url'] ??
-                  'https://via.placeholder.com/400x250?text=No+Image',
-              description: roomMap['description'] ?? '',
-              amenities: ((roomMap['room_amenities'] ?? []) as List)
-                  .map((a) => a['amenity'] as String)
-                  .toList(),
-              availableRooms: ((roomMap['available_rooms'] ?? []) as List)
-                  .map(
-                    (r) => AvailableRoom(
-                      title: r['title'] ?? '',
-                      subtitle: r['subtitle'] ?? '',
-                      pricePerNight: r['price_per_night'] ?? 0,
-                      isAvailable: r['is_available'] ?? false,
-                    ),
-                  )
-                  .toList(),
-            ))
+        .map(
+          (roomMap) => RoomItem(
+            id: roomMap['id'] as int,
+            name: roomMap['name'] ?? '',
+            location: roomMap['location'] ?? '',
+            pricePerNight: roomMap['price_per_night'] ?? 0,
+            imageUrl:
+                roomMap['image_url'] ??
+                'https://via.placeholder.com/400x250?text=No+Image',
+            description: roomMap['description'] ?? '',
+            amenities: ((roomMap['room_amenities'] ?? []) as List)
+                .map((a) => a['amenity'] as String)
+                .toList(),
+            availableRooms: ((roomMap['available_rooms'] ?? []) as List)
+                .map(
+                  (r) => AvailableRoom(
+                    title: r['title'] ?? '',
+                    subtitle: r['subtitle'] ?? '',
+                    pricePerNight: r['price_per_night'] ?? 0,
+                    isAvailable: r['is_available'] ?? false,
+                  ),
+                )
+                .toList(),
+          ),
+        )
         .toList();
   }
 
@@ -192,9 +200,7 @@ class _RoomListPageState extends State<RoomListPage> {
               onPressed: () async {
                 final created = await Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => const AddRoomPage(),
-                  ),
+                  MaterialPageRoute(builder: (_) => const AddRoomPage()),
                 );
 
                 if (created == true) {

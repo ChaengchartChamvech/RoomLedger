@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:roomledger/models/room_item.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class EditAvailableRoomsPage extends StatefulWidget {
-  final List<AvailableRoom> availableRooms;
+  final int roomId;
 
   const EditAvailableRoomsPage({
     super.key,
-    required this.availableRooms,
+    required this.roomId,
   });
 
   @override
@@ -14,18 +15,56 @@ class EditAvailableRoomsPage extends StatefulWidget {
 }
 
 class _EditAvailableRoomsPageState extends State<EditAvailableRoomsPage> {
-  late List<AvailableRoom> rooms;
+  final supabase = Supabase.instance.client;
+
+  bool isLoading = true;
+  bool isSaving = false;
+  List<AvailableRoom> rooms = [];
 
   @override
   void initState() {
     super.initState();
-    rooms = List<AvailableRoom>.from(widget.availableRooms);
+    loadAvailableRooms();
   }
 
-  void _addRoom() {
+  Future<void> loadAvailableRooms() async {
+    try {
+      setState(() => isLoading = true);
+
+      final data = await supabase
+          .from('available_rooms')
+          .select('id, title, subtitle, price_per_night, is_available')
+          .eq('room_id', widget.roomId)
+          .order('id', ascending: true);
+
+      rooms = (data as List)
+          .map(
+            (r) => AvailableRoom(
+              id: r['id'],
+              title: r['title'] ?? '',
+              subtitle: r['subtitle'] ?? '',
+              pricePerNight: r['price_per_night'] ?? 0,
+              isAvailable: r['is_available'] ?? false,
+            ),
+          )
+          .toList();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Load error: $e')));
+    } finally {
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
+    }
+  }
+
+  void addLocalRoom() {
     setState(() {
       rooms.add(
         const AvailableRoom(
+          id: null,
           title: '',
           subtitle: '',
           pricePerNight: 0,
@@ -35,14 +74,79 @@ class _EditAvailableRoomsPageState extends State<EditAvailableRoomsPage> {
     });
   }
 
-  void _removeRoom(int index) {
+  void updateLocalRoom(int index, AvailableRoom updatedRoom) {
     setState(() {
-      rooms.removeAt(index);
+      rooms[index] = updatedRoom;
     });
   }
 
-  void _saveAndBack() {
-    Navigator.pop(context, rooms);
+  Future<void> deleteRoom(int index) async {
+    final room = rooms[index];
+
+    try {
+      if (room.id != null) {
+        await supabase.from('available_rooms').delete().eq('id', room.id!);
+      }
+
+      setState(() {
+        rooms.removeAt(index);
+      });
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Room type deleted')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Delete error: $e')));
+    }
+  }
+
+  Future<void> saveAll() async {
+    try {
+      setState(() => isSaving = true);
+
+      for (final room in rooms) {
+        if (room.title.trim().isEmpty) continue;
+        if (room.pricePerNight < 0) continue;
+
+        if (room.id == null) {
+          await supabase.from('available_rooms').insert({
+            'room_id': widget.roomId,
+            'title': room.title.trim(),
+            'subtitle': room.subtitle.trim(),
+            'price_per_night': room.pricePerNight,
+            'is_available': room.isAvailable,
+          });
+        } else {
+          await supabase.from('available_rooms').update({
+            'title': room.title.trim(),
+            'subtitle': room.subtitle.trim(),
+            'price_per_night': room.pricePerNight,
+            'is_available': room.isAvailable,
+          }).eq('id', room.id!);
+        }
+      }
+
+      if (!mounted) return;
+      Navigator.pop(context, true);
+    } on PostgrestException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Database error: ${e.message}')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+    } finally {
+      if (mounted) {
+        setState(() => isSaving = false);
+      }
+    }
   }
 
   @override
@@ -52,52 +156,55 @@ class _EditAvailableRoomsPageState extends State<EditAvailableRoomsPage> {
         title: const Text('Edit Available Rooms'),
         actions: [
           TextButton(
-            onPressed: _saveAndBack,
-            child: const Text(
-              'Save',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
+            onPressed: isSaving ? null : saveAll,
+            child: isSaving
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text(
+                    'Save',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _addRoom,
+        onPressed: isSaving ? null : addLocalRoom,
         child: const Icon(Icons.add),
       ),
-      body: rooms.isEmpty
-          ? const Center(
-              child: Text(
-                'No available rooms yet.\nTap + to add one.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16),
-              ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: rooms.length,
-              itemBuilder: (context, index) {
-                return _EditableRoomCard(
-                  key: ValueKey(index),
-                  room: rooms[index],
-                  onChanged: (updatedRoom) {
-                    setState(() {
-                      rooms[index] = updatedRoom;
-                    });
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : rooms.isEmpty
+              ? const Center(
+                  child: Text(
+                    'No room types yet.\nTap + to add one.',
+                    textAlign: TextAlign.center,
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: rooms.length,
+                  itemBuilder: (context, index) {
+                    return _EditableAvailableRoomCard(
+                      key: ValueKey('${rooms[index].id ?? 'new'}-$index'),
+                      room: rooms[index],
+                      onChanged: (updated) => updateLocalRoom(index, updated),
+                      onDelete: () => deleteRoom(index),
+                    );
                   },
-                  onDelete: () => _removeRoom(index),
-                );
-              },
-            ),
+                ),
     );
   }
 }
 
-class _EditableRoomCard extends StatefulWidget {
+class _EditableAvailableRoomCard extends StatefulWidget {
   final AvailableRoom room;
   final ValueChanged<AvailableRoom> onChanged;
   final VoidCallback onDelete;
 
-  const _EditableRoomCard({
+  const _EditableAvailableRoomCard({
     super.key,
     required this.room,
     required this.onChanged,
@@ -105,10 +212,12 @@ class _EditableRoomCard extends StatefulWidget {
   });
 
   @override
-  State<_EditableRoomCard> createState() => _EditableRoomCardState();
+  State<_EditableAvailableRoomCard> createState() =>
+      _EditableAvailableRoomCardState();
 }
 
-class _EditableRoomCardState extends State<_EditableRoomCard> {
+class _EditableAvailableRoomCardState
+    extends State<_EditableAvailableRoomCard> {
   late TextEditingController titleController;
   late TextEditingController subtitleController;
   late TextEditingController priceController;
@@ -133,9 +242,9 @@ class _EditableRoomCardState extends State<_EditableRoomCard> {
     super.dispose();
   }
 
-  void _emitChange() {
+  void emitChange() {
     widget.onChanged(
-      AvailableRoom(
+      widget.room.copyWith(
         title: titleController.text.trim(),
         subtitle: subtitleController.text.trim(),
         pricePerNight: int.tryParse(priceController.text.trim()) ?? 0,
@@ -162,10 +271,7 @@ class _EditableRoomCardState extends State<_EditableRoomCard> {
               const Expanded(
                 child: Text(
                   'Room Type',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
                 ),
               ),
               IconButton(
@@ -178,7 +284,7 @@ class _EditableRoomCardState extends State<_EditableRoomCard> {
 
           TextField(
             controller: titleController,
-            onChanged: (_) => _emitChange(),
+            onChanged: (_) => emitChange(),
             decoration: InputDecoration(
               labelText: 'Title',
               hintText: 'e.g. Standard Room',
@@ -191,7 +297,7 @@ class _EditableRoomCardState extends State<_EditableRoomCard> {
 
           TextField(
             controller: subtitleController,
-            onChanged: (_) => _emitChange(),
+            onChanged: (_) => emitChange(),
             decoration: InputDecoration(
               labelText: 'Subtitle',
               hintText: 'e.g. 1 Queen - 2 Guests - 25m2',
@@ -205,7 +311,7 @@ class _EditableRoomCardState extends State<_EditableRoomCard> {
           TextField(
             controller: priceController,
             keyboardType: TextInputType.number,
-            onChanged: (_) => _emitChange(),
+            onChanged: (_) => emitChange(),
             decoration: InputDecoration(
               labelText: 'Price per night',
               hintText: 'e.g. 250',
@@ -217,8 +323,8 @@ class _EditableRoomCardState extends State<_EditableRoomCard> {
           const SizedBox(height: 12),
 
           SwitchListTile(
-            value: isAvailable,
             contentPadding: EdgeInsets.zero,
+            value: isAvailable,
             title: const Text(
               'Available',
               style: TextStyle(fontWeight: FontWeight.w700),
@@ -227,7 +333,7 @@ class _EditableRoomCardState extends State<_EditableRoomCard> {
               setState(() {
                 isAvailable = value;
               });
-              _emitChange();
+              emitChange();
             },
           ),
         ],

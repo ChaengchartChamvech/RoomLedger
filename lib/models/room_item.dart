@@ -1,10 +1,12 @@
 class AvailableRoom {
+  final int? id;
   final String title;
   final String subtitle;
   final int pricePerNight;
   final bool isAvailable;
 
   const AvailableRoom({
+    this.id,
     required this.title,
     required this.subtitle,
     required this.pricePerNight,
@@ -19,9 +21,26 @@ class AvailableRoom {
       isAvailable: json['isAvailable'] as bool,
     );
   }
+  AvailableRoom copyWith({
+    int? id,
+    String? title,
+    String? subtitle,
+    int? pricePerNight,
+    bool? isAvailable,
+  }) {
+    return AvailableRoom(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      subtitle: subtitle ?? this.subtitle,
+      pricePerNight: pricePerNight ?? this.pricePerNight,
+      isAvailable: isAvailable ?? this.isAvailable,
+    );
+  }
+
 }
 
 class RoomItem {
+  final int id;
   final String name;
   final String location;
   final int pricePerNight;
@@ -31,6 +50,7 @@ class RoomItem {
   final List<AvailableRoom> availableRooms;
 
   const RoomItem({
+    required this.id,
     required this.name,
     required this.location,
     required this.pricePerNight,
@@ -42,6 +62,7 @@ class RoomItem {
 
   factory RoomItem.fromJson(Map<String, dynamic> json) {
     return RoomItem(
+      id: json['id'] as int,
       name: json['name'] as String,
       location: json['location'] as String,
       pricePerNight: json['pricePerNight'] as int,

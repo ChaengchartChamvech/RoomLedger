@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:roomledger/models/room_item.dart';
-
+import 'package:roomledger/screens/edit_available_rooms_page.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 class RoomDetailPage extends StatefulWidget {
   final RoomItem room;
   final bool isOwner;
@@ -11,8 +12,44 @@ class RoomDetailPage extends StatefulWidget {
 }
 
 class _RoomDetailPageState extends State<RoomDetailPage> {
+  final supabase = Supabase.instance.client;
+
   String? roomName = "";
   int roomPrice = 0;
+  late Future<List<AvailableRoom>> _availableRoomsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _availableRoomsFuture = fetchAvailableRooms();
+  }
+
+  Future<List<AvailableRoom>> fetchAvailableRooms() async {
+    final data = await supabase
+        .from('available_rooms')
+        .select('id, title, subtitle, price_per_night, is_available')
+        .eq('room_id', widget.room.id)
+        .order('id', ascending: true);
+
+    return (data as List)
+        .map(
+          (r) => AvailableRoom(
+            id: r['id'],
+            title: r['title'] ?? '',
+            subtitle: r['subtitle'] ?? '',
+            pricePerNight: r['price_per_night'] ?? 0,
+            isAvailable: r['is_available'] ?? false,
+          ),
+        )
+        .toList();
+  }
+
+  Future<void> refreshAvailableRooms() async {
+    setState(() {
+      _availableRoomsFuture = fetchAvailableRooms();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -54,7 +91,6 @@ class _RoomDetailPageState extends State<RoomDetailPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Title + rating
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -67,12 +103,10 @@ class _RoomDetailPageState extends State<RoomDetailPage> {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 12),
                     ],
                   ),
                   const SizedBox(height: 10),
 
-                  // Price row
                   Row(
                     children: [
                       Text(
@@ -133,13 +167,19 @@ class _RoomDetailPageState extends State<RoomDetailPage> {
                       ),
                       if (widget.isOwner)
                         OutlinedButton.icon(
-                          onPressed: () {
-                            // TODO: navigate to edit available rooms page
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text("Edit Rooms clicked"),
+                          onPressed: () async {
+                            final updated = await Navigator.push<bool>(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => EditAvailableRoomsPage(
+                                  roomId: widget.room.id,
+                                ),
                               ),
                             );
+
+                            if (updated == true) {
+                              refreshAvailableRooms();
+                            }
                           },
                           icon: const Icon(Icons.edit, size: 18),
                           label: const Text("Edit Rooms"),
@@ -155,34 +195,61 @@ class _RoomDetailPageState extends State<RoomDetailPage> {
                   ),
                   const SizedBox(height: 10),
 
-                  ...widget.room.availableRooms.map(
-                    (r) => _AvailableRoomTile(
-                      room: r,
-                      onTap: r.isAvailable
-                          ? () {
-                              setState(() {
-                                roomName = r.title;
-                                roomPrice = r.pricePerNight;
-                              });
+                  FutureBuilder<List<AvailableRoom>>(
+                    future: _availableRoomsFuture,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Center(child: CircularProgressIndicator()),
+                        );
+                      }
 
-                              // TODO: go to booking page / checkout
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text("Selected: ${r.title}")),
-                              );
-                            }
-                          : null,
-                    ),
+                      if (snapshot.hasError) {
+                        return Text('Error: ${snapshot.error}');
+                      }
+
+                      final rooms = snapshot.data ?? [];
+
+                      if (rooms.isEmpty) {
+                        return const Text('No available room types.');
+                      }
+
+                      return Column(
+                        children: rooms
+                            .map(
+                              (r) => _AvailableRoomTile(
+                                room: r,
+                                onTap: r.isAvailable
+                                    ? () {
+                                        setState(() {
+                                          roomName = r.title;
+                                          roomPrice = r.pricePerNight;
+                                        });
+
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text("Selected: ${r.title}"),
+                                          ),
+                                        );
+                                      }
+                                    : null,
+                              ),
+                            )
+                            .toList(),
+                      );
+                    },
                   ),
 
-                  const SizedBox(height: 90), // space for bottom bar
+                  const SizedBox(height: 90),
                 ],
               ),
             ),
           ),
         ],
       ),
-
-      // Bottom booking bar
       bottomNavigationBar: Container(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
         decoration: const BoxDecoration(
@@ -230,7 +297,6 @@ class _RoomDetailPageState extends State<RoomDetailPage> {
                     padding: const EdgeInsets.symmetric(horizontal: 18),
                   ),
                   onPressed: () {
-                    // TODO: book flow
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text("Book now clicked")),
                     );
