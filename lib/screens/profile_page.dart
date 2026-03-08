@@ -11,7 +11,7 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   // Mock data
   late TextEditingController _fullNameController;
-  late TextEditingController _emailController;
+  //late TextEditingController _emailController;
   late TextEditingController _phoneController;
 
   bool _isSaving = false;
