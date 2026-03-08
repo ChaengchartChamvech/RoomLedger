@@ -14,7 +14,8 @@ class _RegisterPageState extends State<RegisterPage> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   final nameController = TextEditingController();
-
+  final List<String> roles = ['tenant', 'owner'];
+  String _selectedRole = 'tenant';
   bool isLoading = false;
 
   Future<void> register() async {
@@ -32,6 +33,7 @@ class _RegisterPageState extends State<RegisterPage> {
         await supabase.from('profiles').insert({
           'id': user.id,
           'full_name': nameController.text.trim(),
+          'role': _selectedRole,
         });
       }
 
@@ -87,6 +89,28 @@ class _RegisterPageState extends State<RegisterPage> {
               ),
             ),
             const SizedBox(height: 20),
+
+            SizedBox(
+              width: double.infinity,
+              child: DropdownButtonFormField<String>(
+                items: roles
+                    .map((role) => DropdownMenuItem(
+                          value: role,
+                          child: Text(role[0].toUpperCase() + role.substring(1)),
+                        ))
+                    .toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() => _selectedRole = value);
+                  }
+                },
+                decoration: const InputDecoration(
+                  labelText: "Select Role",
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20, width: 50,),
 
             SizedBox(
               width: double.infinity,

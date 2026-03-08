@@ -183,10 +183,11 @@ class _RoomDetailPageState extends State<RoomDetailPage> {
                           ),
                         ),
                       ),
-                      IconButton(
-                        onPressed: deleteRoom,
-                        icon: const Icon(Icons.delete_outline),
-                      ),
+                      if(widget.isRoomOwner)
+                        IconButton(
+                          onPressed: deleteRoom,
+                          icon: const Icon(Icons.delete_outline),
+                        ),
                     ],
                   ),
                   const SizedBox(height: 10),
