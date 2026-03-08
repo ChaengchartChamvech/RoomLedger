@@ -144,9 +144,11 @@ class _RoomListPageState extends State<RoomListPage> {
                       _filteredRooms = _allRooms;
                     } else {
                       _filteredRooms = _allRooms
-                          .where((room) => room.name
-                              .toLowerCase()
-                              .contains(value.toLowerCase()))
+                          .where(
+                            (room) => room.name.toLowerCase().contains(
+                              value.toLowerCase(),
+                            ),
+                          )
                           .toList();
                     }
                   });
@@ -194,10 +196,12 @@ class _RoomListPageState extends State<RoomListPage> {
                         final room = _filteredRooms[index];
                         return RoomCard(
                           room: room,
-                          onTap: () {
+                          onTap: () async {
                             final currentUserId = supabase.auth.currentUser?.id;
-                            final isRoomOwner = currentUserId != null && room.ownerId == currentUserId;
-                            Navigator.push(
+                            final isRoomOwner =
+                                currentUserId != null &&
+                                room.ownerId == currentUserId;
+                            final deleted = await Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (_) => RoomDetailPage(
@@ -206,6 +210,19 @@ class _RoomListPageState extends State<RoomListPage> {
                                 ),
                               ),
                             );
+
+                            if (deleted == true) {
+                              refreshRooms();
+                            }
+                            // Navigator.push(
+                            //   context,
+                            //   MaterialPageRoute(
+                            //     builder: (_) => RoomDetailPage(
+                            //       room: room,
+                            //       isRoomOwner: isRoomOwner,
+                            //     ),
+                            //   ),
+                            // );
                           },
                         );
                       },

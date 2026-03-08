@@ -112,6 +112,17 @@ class _AddRoomPageState extends State<AddRoomPage> {
         'price_per_night': price,
         'image_url': imageUrl,
       });
+      final roomData = await supabase.from('rooms').select('id').eq('owner_id', user.id).order('created_at', ascending: false).limit(1).single();
+      final roomId = roomData['id'];
+      
+      await supabase.from("room_amenities").insert([
+        {"room_id": roomId, "amenity": "Wi-Fi"},
+        {"room_id": roomId, "amenity": "Air Conditioning"},
+        {"room_id": roomId, "amenity": "TV"},
+        {"room_id": roomId, "amenity": "BreakFast"},
+      ]);
+
+       if (!mounted) return;
 
       if (!mounted) return;
       Navigator.pop(context, true);

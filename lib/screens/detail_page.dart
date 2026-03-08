@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart';
 import 'package:roomledger/models/room_item.dart';
 import 'package:roomledger/screens/edit_available_rooms_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -54,6 +55,32 @@ class _RoomDetailPageState extends State<RoomDetailPage> {
     setState(() {
       _availableRoomsFuture = fetchAvailableRooms();
     });
+  }
+
+  Future<void> deleteRoom() async {
+    if (widget.isRoomOwner) {
+      try {
+        final roomToDelete = widget.room;
+
+        await supabase
+            .from('rooms')
+            .delete()
+            .eq('id', roomToDelete.id);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Room deleted successfully')),
+        );
+        Navigator.pop(context, true);
+      } catch (e) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error deleting room: $e')));
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Only room owners can delete rooms')),
+      );
+    }
   }
 
   Future<void> bookNow() async {
@@ -155,6 +182,10 @@ class _RoomDetailPageState extends State<RoomDetailPage> {
                             fontWeight: FontWeight.w800,
                           ),
                         ),
+                      ),
+                      IconButton(
+                        onPressed: deleteRoom,
+                        icon: const Icon(Icons.delete_outline),
                       ),
                     ],
                   ),
@@ -351,16 +382,19 @@ class _RoomDetailPageState extends State<RoomDetailPage> {
                     padding: const EdgeInsets.symmetric(horizontal: 18),
                   ),
                   onPressed: () {
-                    if(widget.isRoomOwner){
+                    if (widget.isRoomOwner) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Room owners cannot book their own rooms")),
-                      );                                              
-                    }
-                    else {
+                        const SnackBar(
+                          content: Text(
+                            "Room owners cannot book their own rooms",
+                          ),
+                        ),
+                      );
+                    } else {
                       bookNow();
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text("Book now clicked")),
-                      );                     
+                      );
                     }
                   },
                   child: const Text(
