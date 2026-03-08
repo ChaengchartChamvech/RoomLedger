@@ -17,15 +17,31 @@ class _RoomListPageState extends State<RoomListPage> {
   bool isOwner = false;
   bool isLoading = true;
 
+  late Future<List<RoomItem>> _roomsFuture;
+  List<RoomItem> _allRooms = [];
+  List<RoomItem> _filteredRooms = [];
+
   @override
   void initState() {
     super.initState();
     checkUserRole();
+    _roomsFuture = loadMockRooms().then((rooms) {
+      _allRooms = rooms;
+      _filteredRooms = rooms;
+      return rooms;
+    });
   }
 
   Future<void> checkUserRole() async {
     final user = supabase.auth.currentUser;
-    if (user == null) return;
+    if (user == null) {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+      return;
+    }
 
     final data = await supabase
         .from('profiles')
@@ -33,10 +49,12 @@ class _RoomListPageState extends State<RoomListPage> {
         .eq('id', user.id)
         .single();
 
-    setState(() {
-      isOwner = data['role'] == 'owner';
-      isLoading = false;
-    });
+    if (mounted) {
+      setState(() {
+        isOwner = data['role'] == 'owner';
+        isLoading = false;
+      });
+    }
   }
 
   @override
@@ -52,31 +70,40 @@ class _RoomListPageState extends State<RoomListPage> {
               child: _SearchBar(
                 hintText: 'Search',
                 onChanged: (value) {
-                  // TODO: hook search/filter logic
+                  setState(() {
+                    if (value.isEmpty) {
+                      _filteredRooms = _allRooms;
+                    } else {
+                      _filteredRooms = _allRooms
+                          .where((room) => room.name
+                              .toLowerCase()
+                              .contains(value.toLowerCase()))
+                          .toList();
+                    }
+                  });
                 },
               ),
             ),
             const SizedBox(height: 12),
             Expanded(
               child: FutureBuilder<List<RoomItem>>(
-                future: loadMockRooms(),
+                future: _roomsFuture,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   } else if (snapshot.hasError) {
                     return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.white)));
-                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  } else if (_filteredRooms.isEmpty) {
                     return const Center(child: Text('No rooms found.', style: const TextStyle(color: Colors.white)));
                   }
 
-                  final items = snapshot.data!;
                   return ListView.separated(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                    itemCount: items.length,
+                    itemCount: _filteredRooms.length,
                     separatorBuilder: (context, index) =>
                         const SizedBox(height: 14),
                     itemBuilder: (context, index) {
-                      final room = items[index];
+                      final room = _filteredRooms[index];
                       return RoomCard(
                         room: room,
                         onTap: () {
