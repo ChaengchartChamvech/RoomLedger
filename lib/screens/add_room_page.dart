@@ -36,7 +36,6 @@ class _AddRoomPageState extends State<AddRoomPage> {
   Future<void> pickImage() async {
     final xfile = await picker.pickImage(
       source: ImageSource.gallery,
-      imageQuality: 80,
     );
 
     if (xfile == null) return;
