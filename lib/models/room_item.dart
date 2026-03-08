@@ -25,7 +25,6 @@ class RoomItem {
   final String name;
   final String location;
   final int pricePerNight;
-  final double rating;
   final String imageUrl;
   final String description;
   final List<String> amenities;
@@ -35,7 +34,6 @@ class RoomItem {
     required this.name,
     required this.location,
     required this.pricePerNight,
-    required this.rating,
     required this.imageUrl,
     required this.description,
     required this.amenities,
@@ -47,7 +45,6 @@ class RoomItem {
       name: json['name'] as String,
       location: json['location'] as String,
       pricePerNight: json['pricePerNight'] as int,
-      rating: (json['rating'] as num).toDouble(),
       imageUrl: json['imageUrl'] as String,
       description: json['description'] as String,
       amenities: (json['amenities'] as List<dynamic>).map((e) => e as String).toList(),

@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -19,10 +19,9 @@ class _AddRoomPageState extends State<AddRoomPage> {
   final descController = TextEditingController();
   final addressController = TextEditingController();
   final priceController = TextEditingController();
-  final bedController = TextEditingController(text: "0");
-  final bathController = TextEditingController(text: "0");
 
-  File? selectedImage;
+  XFile? selectedImage;
+  Uint8List? selectedImageBytes;
   bool isSaving = false;
 
   @override
@@ -31,8 +30,6 @@ class _AddRoomPageState extends State<AddRoomPage> {
     descController.dispose();
     addressController.dispose();
     priceController.dispose();
-    bedController.dispose();
-    bathController.dispose();
     super.dispose();
   }
 
@@ -41,28 +38,32 @@ class _AddRoomPageState extends State<AddRoomPage> {
       source: ImageSource.gallery,
       imageQuality: 80,
     );
+
     if (xfile == null) return;
 
+    final bytes = await xfile.readAsBytes();
+
     setState(() {
-      selectedImage = File(xfile.path);
+      selectedImage = xfile;
+      selectedImageBytes = bytes;
     });
   }
 
-  Future<String> uploadRoomImage(File file) async {
+  Future<String> uploadRoomImage(XFile file) async {
     final user = supabase.auth.currentUser;
     if (user == null) throw Exception("Not logged in");
 
-    // Make unique filename
-    final ext = file.path.split('.').last.toLowerCase();
-    final fileName =
-        "${user.id}/${DateTime.now().millisecondsSinceEpoch}.$ext";
+    final bytes = await file.readAsBytes();
+    final ext = file.name.split('.').last.toLowerCase();
+    final fileName = "${user.id}/${DateTime.now().millisecondsSinceEpoch}.$ext";
 
-    // Upload
-    await supabase.storage.from('images').upload(fileName, file);
+    await supabase.storage.from('images').uploadBinary(
+      fileName,
+      bytes,
+      fileOptions: const FileOptions(upsert: false),
+    );
 
-    // Get public URL
-    final url = supabase.storage.from('images').getPublicUrl(fileName);
-    return url;
+    return supabase.storage.from('images').getPublicUrl(fileName);
   }
 
   void showError(String message) {
@@ -82,34 +83,38 @@ class _AddRoomPageState extends State<AddRoomPage> {
     final desc = descController.text.trim();
     final address = addressController.text.trim();
     final price = int.tryParse(priceController.text.trim());
-    final beds = int.tryParse(bedController.text.trim()) ?? 0;
-    final baths = int.tryParse(bathController.text.trim()) ?? 0;
+    debugPrint('Current user id: ${user.id}');
+    if (title.isEmpty) {
+      showError("Please enter room title");
+      return;
+    }
 
-    if (title.isEmpty) return showError("Please enter room title");
-    if (price == null || price <= 0) return showError("Please enter valid price");
-    if (selectedImage == null) return showError("Please pick a room image");
+    if (price == null || price <= 0) {
+      showError("Please enter valid price");
+      return;
+    }
+
+    if (selectedImage == null) {
+      showError("Please pick a room image");
+      return;
+    }
 
     try {
       setState(() => isSaving = true);
 
-      // 1) Upload image to storage
       final imageUrl = await uploadRoomImage(selectedImage!);
 
-      // 2) Insert room
       await supabase.from('rooms').insert({
         'owner_id': user.id,
-        'title': title,
+        'name': title,
         'description': desc.isEmpty ? null : desc,
-        'address': address.isEmpty ? null : address,
-        'price_per_month': price,
-        'bedrooms': beds,
-        'bathrooms': baths,
+        'location': address.isEmpty ? null : address,
+        'price_per_night': price,
         'image_url': imageUrl,
-        'is_available': true,
       });
 
       if (!mounted) return;
-      Navigator.pop(context, true); // return success
+      Navigator.pop(context, true);
     } on StorageException catch (e) {
       showError("Upload error: ${e.message}");
     } on PostgrestException catch (e) {
@@ -117,7 +122,9 @@ class _AddRoomPageState extends State<AddRoomPage> {
     } catch (e) {
       showError("Error: $e");
     } finally {
-      if (mounted) setState(() => isSaving = false);
+      if (mounted) {
+        setState(() => isSaving = false);
+      }
     }
   }
 
@@ -131,7 +138,6 @@ class _AddRoomPageState extends State<AddRoomPage> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // Image picker
             InkWell(
               onTap: isSaving ? null : pickImage,
               borderRadius: BorderRadius.circular(16),
@@ -142,28 +148,27 @@ class _AddRoomPageState extends State<AddRoomPage> {
                   color: const Color(0xFFF2F2F2),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: const Color(0x22000000)),
-                  image: selectedImage != null
-                      ? DecorationImage(
-                          image: FileImage(selectedImage!),
-                          fit: BoxFit.cover,
-                        )
-                      : null,
                 ),
-                alignment: Alignment.center,
-                child: selectedImage == null
-                    ? const Column(
-                        mainAxisSize: MainAxisSize.min,
+                clipBehavior: Clip.antiAlias,
+                child: selectedImageBytes != null
+                    ? Image.memory(
+                        selectedImageBytes!,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                      )
+                    : const Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(Icons.add_a_photo_outlined, size: 34),
                           SizedBox(height: 8),
-                          Text("Tap to add room image",
-                              style: TextStyle(fontWeight: FontWeight.w700)),
+                          Text(
+                            "Tap to add room image",
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          ),
                         ],
-                      )
-                    : null,
+                      ),
               ),
             ),
-
             const SizedBox(height: 14),
 
             _Input(
@@ -188,54 +193,20 @@ class _AddRoomPageState extends State<AddRoomPage> {
             ),
             const SizedBox(height: 12),
 
-            Row(
-              children: [
-                Expanded(
-                  child: _Input(
-                    label: "Price / month",
-                    controller: priceController,
-                    hint: "15000",
-                    keyboardType: TextInputType.number,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _Input(
-                    label: "Bedrooms",
-                    controller: bedController,
-                    hint: "0",
-                    keyboardType: TextInputType.number,
-                  ),
-                ),
-              ],
+            _Input(
+              label: "Price / Night (Start)",
+              controller: priceController,
+              hint: "15000",
+              keyboardType: TextInputType.number,
             ),
-
-            const SizedBox(height: 12),
-
-            Row(
-              children: [
-                Expanded(
-                  child: _Input(
-                    label: "Bathrooms",
-                    controller: bathController,
-                    hint: "0",
-                    keyboardType: TextInputType.number,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Container(), // keep layout balanced
-                ),
-              ],
-            ),
-
             const SizedBox(height: 20),
 
             SizedBox(
               width: double.infinity,
               height: 48,
               child: ElevatedButton(
-                onPressed: isSaving ? null : saveRoom,
+                onPressed: isSaving ? null : saveRoom
+                  ,
                 child: isSaving
                     ? const CircularProgressIndicator(color: Colors.white)
                     : const Text(
@@ -279,7 +250,9 @@ class _Input extends StatelessWidget {
           keyboardType: keyboardType,
           decoration: InputDecoration(
             hintText: hint,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
           ),
         ),
       ],
