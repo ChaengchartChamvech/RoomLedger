@@ -120,9 +120,38 @@ class _RoomDetailPageState extends State<RoomDetailPage> {
                   ),
 
                   const SizedBox(height: 18),
-                  const Text(
-                    "Available Rooms",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                  Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          "Available Rooms",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      if (widget.isOwner)
+                        OutlinedButton.icon(
+                          onPressed: () {
+                            // TODO: navigate to edit available rooms page
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text("Edit Rooms clicked"),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.edit, size: 18),
+                          label: const Text("Edit Rooms"),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.black,
+                            side: const BorderSide(color: Color(0x22000000)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 10),
 
@@ -131,11 +160,11 @@ class _RoomDetailPageState extends State<RoomDetailPage> {
                       room: r,
                       onTap: r.isAvailable
                           ? () {
-                            setState(() {
-                              roomName = r.title;
-                              roomPrice = r.pricePerNight;
-                            });
-                              
+                              setState(() {
+                                roomName = r.title;
+                                roomPrice = r.pricePerNight;
+                              });
+
                               // TODO: go to booking page / checkout
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(content: Text("Selected: ${r.title}")),
@@ -219,7 +248,6 @@ class _RoomDetailPageState extends State<RoomDetailPage> {
     );
   }
 }
-
 
 class _AmenityChip extends StatelessWidget {
   final String label;

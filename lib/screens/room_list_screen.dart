@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:roomledger/data/mock_room_items.dart';
 import 'package:roomledger/models/room_item.dart';
 import 'package:roomledger/screens/detail_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'add_room_page.dart';
+
 class RoomListPage extends StatefulWidget {
   const RoomListPage({super.key});
 
@@ -14,47 +14,96 @@ class RoomListPage extends StatefulWidget {
 class _RoomListPageState extends State<RoomListPage> {
   static const _backgroundColor = Color.fromARGB(255, 2, 103, 150);
   final supabase = Supabase.instance.client;
+
   bool isOwner = false;
-  bool isLoading = true;
+  bool isLoadingRole = true;
 
   late Future<List<RoomItem>> _roomsFuture;
-  List<RoomItem> _allRooms = [];
-  List<RoomItem> _filteredRooms = [];
 
   @override
   void initState() {
     super.initState();
     checkUserRole();
-    _roomsFuture = loadMockRooms().then((rooms) {
-      _allRooms = rooms;
-      _filteredRooms = rooms;
-      return rooms;
-    });
+    _roomsFuture = fetchRooms();
   }
 
   Future<void> checkUserRole() async {
     final user = supabase.auth.currentUser;
     if (user == null) {
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
-      }
+      setState(() {
+        isOwner = false;
+        isLoadingRole = false;
+      });
       return;
     }
 
-    final data = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
+    try {
+      final data = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
 
-    if (mounted) {
       setState(() {
         isOwner = data['role'] == 'owner';
-        isLoading = false;
+        isLoadingRole = false;
+      });
+    } catch (e) {
+      setState(() {
+        isOwner = false;
+        isLoadingRole = false;
       });
     }
+  }
+
+  Future<List<RoomItem>> fetchRooms() async {
+    final data = await supabase.from('rooms').select('''
+      id,
+      name,
+      location,
+      price_per_night,
+      image_url,
+      description,
+      room_amenities (
+        amenity
+      ),
+      available_rooms (
+        title,
+        subtitle,
+        price_per_night,
+        is_available
+      )
+    ''').order('id', ascending: false);
+
+    return (data as List)
+        .map((roomMap) => RoomItem(
+              name: roomMap['name'] ?? '',
+              location: roomMap['location'] ?? '',
+              pricePerNight: roomMap['price_per_night'] ?? 0,
+              imageUrl: roomMap['image_url'] ??
+                  'https://via.placeholder.com/400x250?text=No+Image',
+              description: roomMap['description'] ?? '',
+              amenities: ((roomMap['room_amenities'] ?? []) as List)
+                  .map((a) => a['amenity'] as String)
+                  .toList(),
+              availableRooms: ((roomMap['available_rooms'] ?? []) as List)
+                  .map(
+                    (r) => AvailableRoom(
+                      title: r['title'] ?? '',
+                      subtitle: r['subtitle'] ?? '',
+                      pricePerNight: r['price_per_night'] ?? 0,
+                      isAvailable: r['is_available'] ?? false,
+                    ),
+                  )
+                  .toList(),
+            ))
+        .toList();
+  }
+
+  Future<void> refreshRooms() async {
+    setState(() {
+      _roomsFuture = fetchRooms();
+    });
   }
 
   @override
@@ -70,17 +119,7 @@ class _RoomListPageState extends State<RoomListPage> {
               child: _SearchBar(
                 hintText: 'Search',
                 onChanged: (value) {
-                  setState(() {
-                    if (value.isEmpty) {
-                      _filteredRooms = _allRooms;
-                    } else {
-                      _filteredRooms = _allRooms
-                          .where((room) => room.name
-                              .toLowerCase()
-                              .contains(value.toLowerCase()))
-                          .toList();
-                    }
-                  });
+                  // later: implement local filter or Supabase search
                 },
               ),
             ),
@@ -90,32 +129,57 @@ class _RoomListPageState extends State<RoomListPage> {
                 future: _roomsFuture,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  } else if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.white)));
-                  } else if (_filteredRooms.isEmpty) {
-                    return const Center(child: Text('No rooms found.', style: const TextStyle(color: Colors.white)));
+                    return const Center(
+                      child: CircularProgressIndicator(color: Colors.white),
+                    );
                   }
 
-                  return ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                    itemCount: _filteredRooms.length,
-                    separatorBuilder: (context, index) =>
-                        const SizedBox(height: 14),
-                    itemBuilder: (context, index) {
-                      final room = _filteredRooms[index];
-                      return RoomCard(
-                        room: room,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => RoomDetailPage(room: room, isOwner: isOwner),
-                            ),
-                          );
-                        },
-                      );
-                    },
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Text(
+                        'Error: ${snapshot.error}',
+                        style: const TextStyle(color: Colors.white),
+                        textAlign: TextAlign.center,
+                      ),
+                    );
+                  }
+
+                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        'No rooms found.',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    );
+                  }
+
+                  final items = snapshot.data!;
+
+                  return RefreshIndicator(
+                    onRefresh: refreshRooms,
+                    child: ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      itemCount: items.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 14),
+                      itemBuilder: (context, index) {
+                        final room = items[index];
+                        return RoomCard(
+                          room: room,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => RoomDetailPage(
+                                  room: room,
+                                  isOwner: isOwner,
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
                   );
                 },
               ),
@@ -123,16 +187,19 @@ class _RoomListPageState extends State<RoomListPage> {
           ],
         ),
       ),
-      floatingActionButton: isOwner
+      floatingActionButton: !isLoadingRole && isOwner
           ? FloatingActionButton(
-              onPressed: () {
-                // Navigate to Add Room page
-                Navigator.push(
+              onPressed: () async {
+                final created = await Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (_) => const AddRoomPage(),
                   ),
                 );
+
+                if (created == true) {
+                  refreshRooms();
+                }
               },
               child: const Icon(Icons.add),
             )
@@ -213,23 +280,6 @@ class RoomCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.star_rounded,
-                        size: 18,
-                        color: Color(0xFFFFB400),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        room.rating.toStringAsFixed(2),
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
                 ],
               ),
             ],
