@@ -2,10 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:roomledger/models/room_item.dart';
 import 'package:roomledger/screens/edit_available_rooms_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 class RoomDetailPage extends StatefulWidget {
   final RoomItem room;
   final bool isRoomOwner;
-  const RoomDetailPage({super.key, required this.room, required this.isRoomOwner});
+  const RoomDetailPage({
+    super.key,
+    required this.room,
+    required this.isRoomOwner,
+  });
 
   @override
   State<RoomDetailPage> createState() => _RoomDetailPageState();
@@ -16,6 +21,7 @@ class _RoomDetailPageState extends State<RoomDetailPage> {
 
   String? roomName = "";
   int roomPrice = 0;
+  AvailableRoom? selectedAvailableRoom;
   late Future<List<AvailableRoom>> _availableRoomsFuture;
 
   @override
@@ -48,6 +54,53 @@ class _RoomDetailPageState extends State<RoomDetailPage> {
     setState(() {
       _availableRoomsFuture = fetchAvailableRooms();
     });
+  }
+
+  Future<void> bookNow() async {
+    final user = supabase.auth.currentUser;
+
+    if (user == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please login first')));
+      return;
+    }
+
+    if (selectedAvailableRoom == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a room type first')),
+      );
+      return;
+    }
+
+    if (selectedAvailableRoom!.id == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invalid room type selected')),
+      );
+      return;
+    }
+
+    try {
+      await supabase.from('bookings').insert({
+        'room_id': widget.room.id,
+        'tenant_id': user.id,
+        'available_room_id': selectedAvailableRoom!.id,
+      });
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Booked successfully')));
+    } on PostgrestException catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Database error: ${e.message}')));
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
   }
 
   @override
@@ -223,15 +276,16 @@ class _RoomDetailPageState extends State<RoomDetailPage> {
                                 onTap: r.isAvailable
                                     ? () {
                                         setState(() {
-                                          roomName = r.title;
-                                          roomPrice = r.pricePerNight;
+                                          selectedAvailableRoom = r;
                                         });
 
                                         ScaffoldMessenger.of(
                                           context,
                                         ).showSnackBar(
                                           SnackBar(
-                                            content: Text("Selected: ${r.title}"),
+                                            content: Text(
+                                              "Selected: ${r.title}",
+                                            ),
                                           ),
                                         );
                                       }
@@ -275,7 +329,7 @@ class _RoomDetailPageState extends State<RoomDetailPage> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      "${roomName} - \$${roomPrice}/night",
+                      "${selectedAvailableRoom?.title ?? 'None'} - ${selectedAvailableRoom?.pricePerNight ?? 0}/night",
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w900,
@@ -297,9 +351,17 @@ class _RoomDetailPageState extends State<RoomDetailPage> {
                     padding: const EdgeInsets.symmetric(horizontal: 18),
                   ),
                   onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Book now clicked")),
-                    );
+                    if(widget.isRoomOwner){
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Room owners cannot book their own rooms")),
+                      );                                              
+                    }
+                    else {
+                      bookNow();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Book now clicked")),
+                      );                     
+                    }
                   },
                   child: const Text(
                     "Book Now",

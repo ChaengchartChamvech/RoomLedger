@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'room_list_screen.dart';
 import 'profile_page.dart';
+import 'history_page.dart';
 class Home extends StatefulWidget {
   const Home({super.key});
 
@@ -18,7 +19,7 @@ class _HomeState extends State<Home> {
   ];
   final List<Widget> _pages = [
     RoomListPage(),
-    Center(child: Text('History Page')),
+    HistoryPage(),
     const ProfilePage(),
   ];
   @override
