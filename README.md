@@ -1,71 +1,100 @@
-# RoomLedger
-<<<<<<< HEAD
-Room Rental Mobile App Develop using Flutter
-=======
+RoomLedger
 
-Room rental starter app using Flutter (frontend) + Node.js/Express + MySQL (backend).
+RoomLedger is a Flutter-based room rental application that allows users to browse available rooms, view details, and make bookings.
+The application also supports room owners who can add and manage their rooms.
 
-## Architecture
+The backend is powered by Supabase (PostgreSQL + Auth + Storage).
 
-- Flutter app calls REST API (`/api/rooms`)
-- Node API talks to MySQL
-- MySQL stores room listings
+📱 Features
+👤 Authentication
 
-## 1) Prepare MySQL
+User registration and login
 
-Run these scripts in your MySQL client:
+Supabase Auth integration
 
-- `backend/sql/schema.sql`
-- `backend/sql/seed.sql`
+Secure session management
 
-## 2) Run Backend API
+🏠 Room Browsing
 
-```bash
-cd backend
-cp .env.example .env
-# edit .env with your database password and settings
-npm install
-npm run dev
-```
+View list of available hotels / rooms
 
-API health check:
+Room cards with:
 
-- `GET http://localhost:3000/health`
+image
 
-## 3) Run Flutter App
+location
 
-From project root:
+rating
 
-```bash
-flutter pub get
-flutter run
-```
+starting price
 
-Notes:
+📄 Room Details
 
-- App runs in mock mode by default (`USE_MOCK=true`).
-- Android emulator uses `10.0.2.2` to reach host machine.
-- iOS simulator can use `http://localhost:3000`.
-- Physical device needs your computer LAN IP.
+Room description
 
-Run with backend instead of mock:
+Amenities display
 
-```bash
-flutter run --dart-define=USE_MOCK=false --dart-define=API_BASE_URL=http://10.0.2.2:3000
-```
+Available room types
 
-## Implemented endpoints
+Select room type before booking
 
-- `GET /api/rooms` list rooms
-- `POST /api/rooms` create a room
+📅 Booking System
 
-POST body:
+Users can book a room
 
-```json
-{
-  "title": "Studio near BTS",
-  "location": "Bangkok - Ari",
-  "monthly_price": 11000
-}
-```
->>>>>>> 847b0d9 (base files)
+Booking stored in Supabase database
+
+Booking history displayed for users
+
+🧑‍💼 Owner Features
+
+Room owners can:
+
+Add rooms
+
+Upload room images
+
+Manage available room types
+
+Edit or delete rooms
+
+📜 Rental History
+
+Users can view their previous bookings:
+
+Hotel name
+
+Room type
+
+Location
+
+👤 Profile Page
+
+Users can:
+
+View their profile
+
+Edit name and phone number
+
+Logout
+
+🛠 Tech Stack
+Frontend
+
+Flutter
+
+Dart
+
+Backend
+
+Supabase
+
+PostgreSQL
+
+Authentication
+
+Storage
+
+Database
+
+PostgreSQL via Supabase
