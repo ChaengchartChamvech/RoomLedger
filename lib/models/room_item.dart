@@ -41,6 +41,7 @@ class AvailableRoom {
 
 class RoomItem {
   final int id;
+  final String ownerId;
   final String name;
   final String location;
   final int pricePerNight;
@@ -51,6 +52,7 @@ class RoomItem {
 
   const RoomItem({
     required this.id,
+    required this.ownerId,
     required this.name,
     required this.location,
     required this.pricePerNight,
@@ -62,6 +64,7 @@ class RoomItem {
 
   factory RoomItem.fromJson(Map<String, dynamic> json) {
     return RoomItem(
+      ownerId: json['ownerId'] as String,
       id: json['id'] as int,
       name: json['name'] as String,
       location: json['location'] as String,

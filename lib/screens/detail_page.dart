@@ -4,8 +4,8 @@ import 'package:roomledger/screens/edit_available_rooms_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 class RoomDetailPage extends StatefulWidget {
   final RoomItem room;
-  final bool isOwner;
-  const RoomDetailPage({super.key, required this.room, required this.isOwner});
+  final bool isRoomOwner;
+  const RoomDetailPage({super.key, required this.room, required this.isRoomOwner});
 
   @override
   State<RoomDetailPage> createState() => _RoomDetailPageState();
@@ -165,7 +165,7 @@ class _RoomDetailPageState extends State<RoomDetailPage> {
                           ),
                         ),
                       ),
-                      if (widget.isOwner)
+                      if (widget.isRoomOwner)
                         OutlinedButton.icon(
                           onPressed: () async {
                             final updated = await Navigator.push<bool>(

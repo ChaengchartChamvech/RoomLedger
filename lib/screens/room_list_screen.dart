@@ -67,6 +67,7 @@ class _RoomListPageState extends State<RoomListPage> {
         .from('rooms')
         .select('''
       id,
+      owner_id,
       name,
       location,
       price_per_night,
@@ -89,6 +90,7 @@ class _RoomListPageState extends State<RoomListPage> {
         .map(
           (roomMap) => RoomItem(
             id: roomMap['id'] as int,
+            ownerId: roomMap['owner_id'] as String,
             name: roomMap['name'] ?? '',
             location: roomMap['location'] ?? '',
             pricePerNight: roomMap['price_per_night'] ?? 0,
@@ -193,12 +195,14 @@ class _RoomListPageState extends State<RoomListPage> {
                         return RoomCard(
                           room: room,
                           onTap: () {
+                            final currentUserId = supabase.auth.currentUser?.id;
+                            final isRoomOwner = currentUserId != null && room.ownerId == currentUserId;
                             Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (_) => RoomDetailPage(
                                   room: room,
-                                  isOwner: isOwner,
+                                  isRoomOwner: isRoomOwner,
                                 ),
                               ),
                             );
