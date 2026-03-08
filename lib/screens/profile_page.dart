@@ -9,18 +9,70 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  // Mock data
-  late TextEditingController _fullNameController;
-  //late TextEditingController _emailController;
-  late TextEditingController _phoneController;
+  final supabase = Supabase.instance.client;
+
+  final _fullNameController = TextEditingController();
+  final _phoneController = TextEditingController();
 
   bool _isSaving = false;
+  bool _isLoading = true;
+
+  String? email;
 
   @override
   void initState() {
     super.initState();
-    _fullNameController = TextEditingController(text: "Alex Smith");
-    _phoneController = TextEditingController(text: "+1 234 567 8900");
+    loadProfile();
+  }
+
+  Future<void> loadProfile() async {
+    final user = supabase.auth.currentUser;
+
+    if (user == null) return;
+
+    final data = await supabase
+        .from('profiles')
+        .select()
+        .eq('id', user.id)
+        .single();
+
+    setState(() {
+      email = user.email;
+      _fullNameController.text = data['full_name'] ?? "";
+      _phoneController.text = data['phone'] ?? "";
+      _isLoading = false;
+    });
+  }
+
+  Future<void> saveProfile() async {
+    final user = supabase.auth.currentUser;
+
+    if (user == null) return;
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      await supabase.from('profiles').update({
+        'full_name': _fullNameController.text.trim(),
+        'phone': _phoneController.text.trim(),
+      }).eq('id', user.id);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Profile updated successfully")),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error updating profile: $e")),
+      );
+    }
+
+    setState(() {
+      _isSaving = false;
+    });
   }
 
   @override
@@ -30,148 +82,96 @@ class _ProfilePageState extends State<ProfilePage> {
     super.dispose();
   }
 
-  void _saveProfile() async {
-    setState(() {
-      _isSaving = true;
-    });
-
-    // Simulate network request context
-    await Future.delayed(const Duration(seconds: 1));
-
-    if (mounted) {
-      setState(() {
-        _isSaving = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile updated successfully!')),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     const primaryColor = Color.fromARGB(255, 2, 103, 150);
+
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profile'),
         backgroundColor: primaryColor,
         foregroundColor: Colors.white,
-        elevation: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
-              await Supabase.instance.client.auth.signOut();
+              await supabase.auth.signOut();
             },
           ),
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.all(24),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const SizedBox(height: 20),
+
             TextField(
               controller: _fullNameController,
               decoration: InputDecoration(
                 labelText: 'Full Name',
-                prefixIcon: Icon(Icons.person_outline, color: Colors.grey.shade600),
-                filled: true,
-                fillColor: Colors.grey.shade50,
+                prefixIcon: const Icon(Icons.person_outline),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(
-                    color: Color.fromARGB(255, 2, 103, 150),
-                    width: 2,
-                  ),
                 ),
               ),
             ),
+
             const SizedBox(height: 16),
+
             TextField(
-              controller: TextEditingController(text: 'alex.smith@example.com'),
+              controller: TextEditingController(text: email),
               enabled: false,
               decoration: InputDecoration(
                 labelText: 'Email Address',
-                prefixIcon: Icon(Icons.email_outlined, color: Colors.grey.shade600),
-                filled: true,
-                fillColor: Colors.grey.shade100,
+                prefixIcon: const Icon(Icons.email_outlined),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
                 ),
-                disabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-              ),
-              style: TextStyle(
-                color: Colors.grey.shade800,
               ),
             ),
+
             const SizedBox(height: 16),
+
             TextField(
               controller: _phoneController,
               keyboardType: TextInputType.phone,
               decoration: InputDecoration(
                 labelText: 'Phone Number',
-                prefixIcon: Icon(Icons.phone_outlined, color: Colors.grey.shade600),
-                filled: true,
-                fillColor: Colors.grey.shade50,
+                prefixIcon: const Icon(Icons.phone_outlined),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(
-                    color: Color.fromARGB(255, 2, 103, 150),
-                    width: 2,
-                  ),
                 ),
               ),
             ),
+
             const SizedBox(height: 40),
+
             SizedBox(
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
+                onPressed: _isSaving ? null : saveProfile,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primaryColor,
-                  foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                onPressed: _isSaving ? null : _saveProfile,
                 child: _isSaving
-                    ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
+                    ? const CircularProgressIndicator(color: Colors.white)
                     : const Text(
-                        'Save Changes',
+                        "Save Changes",
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
+                          color: Colors.white,
                         ),
                       ),
               ),
